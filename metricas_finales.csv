@@ -1,0 +1,2 @@
+dataset,modelo,rmse,mae,r2
+data/pizza_sales_sin_tiempo.csv,Random Forest,0.0,0.0,1.0

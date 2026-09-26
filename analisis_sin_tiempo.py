@@ -10,6 +10,7 @@ from sklearn.metrics import root_mean_squared_error
 # Ruta al dataset
 BASE_DIR = Path(__file__).resolve().parent
 ARCHIVO_CSV = BASE_DIR / "data" / "pizza_sales.csv"
+ARCHIVO_COPIA = BASE_DIR / "data" / "pizza_sales_sin_tiempo.csv"
 
 # Cargar datos
 df = pd.read_csv(ARCHIVO_CSV)
@@ -20,19 +21,20 @@ df = pd.read_csv(ARCHIVO_CSV)
 
 df["n_ingredientes"] = df["pizza_ingredients"].str.split(",").apply(len)
 
-df["tiene_pollo"] = df["pizza_ingredients"].str.contains(
-    "chicken", case=False
+ingredientes = (
+    df["pizza_ingredients"]
+    .fillna("")
+    .str.split(",")
+    .explode()
+    .str.strip()
 )
-
-df["tiene_carnes"] = df["pizza_ingredients"].str.contains(
-    "pepperoni|bacon|sausage|salami",
-    case=False
-)
-
-df["tiene_vegetales"] = df["pizza_ingredients"].str.contains(
-    "pepper|onion|mushroom|spinach|tomato",
-    case=False
-)
+ingredientes = ingredientes[ingredientes.ne("")]
+ingredientes_one_hot = pd.get_dummies(
+    ingredientes,
+    prefix="ingrediente",
+    dtype=int
+).groupby(level=0).max()
+df = df.join(ingredientes_one_hot)
 
 # =========================
 # Eliminar variables de tiempo
@@ -55,6 +57,14 @@ df = df.drop(columns=[
 
 for col in ["pizza_size", "pizza_category"]:
     df[col] = LabelEncoder().fit_transform(df[col])
+
+if ARCHIVO_COPIA.exists():
+    print(f"La copia ya existe y está alojada en: {ARCHIVO_COPIA}")
+else:
+    print(f"No existe la copia; se creará en: {ARCHIVO_COPIA}")
+
+df.to_csv(ARCHIVO_COPIA, index=False)
+df = pd.read_csv(ARCHIVO_COPIA)
 
 # =========================
 # Preparar entrenamiento
