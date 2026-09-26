@@ -5,10 +5,27 @@ import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).resolve().parent
 ARCHIVO_CSV = BASE_DIR / "data" / "pizza_sales.csv"
+ARCHIVO_COPIA = BASE_DIR / "data" / "pizza_sales_pearson_spearman.csv"
+UMBRAL_CORRELACION = 0.1
 
 df = pd.read_csv(ARCHIVO_CSV)
 
 df["n_ingredientes"] = df["pizza_ingredients"].str.split(",").apply(len)
+
+ingredientes = (
+    df["pizza_ingredients"]
+    .fillna("")
+    .str.split(",")
+    .explode()
+    .str.strip()
+)
+ingredientes = ingredientes[ingredientes.ne("")]
+ingredientes_one_hot = pd.get_dummies(
+    ingredientes,
+    prefix="ingrediente",
+    dtype=int
+).groupby(level=0).max()
+df = df.join(ingredientes_one_hot)
 
 df = df.drop(columns=[
     "pizza_id",
@@ -41,7 +58,29 @@ comparacion = comparacion.sort_values(
 print("\nCorrelaciones con unit_price")
 print(comparacion)
 
-comparacion.plot(kind="bar", figsize=(10,5))
+correlaciones_variables = comparacion.drop(index="unit_price")
+mascara = (
+    correlaciones_variables["Pearson"].abs().ge(UMBRAL_CORRELACION)
+    | correlaciones_variables["Spearman"].abs().ge(UMBRAL_CORRELACION)
+)
+variables_seleccionadas = correlaciones_variables.index[mascara].tolist()
+columnas_copia = ["unit_price", *variables_seleccionadas]
+df = df[columnas_copia]
+
+if ARCHIVO_COPIA.exists():
+    print(f"La copia ya existe y está alojada en: {ARCHIVO_COPIA}")
+else:
+    print(f"No existe la copia; se creará en: {ARCHIVO_COPIA}")
+
+df.to_csv(ARCHIVO_COPIA, index=False)
+df = pd.read_csv(ARCHIVO_COPIA)
+
+comparacion_filtrada = comparacion.loc[columnas_copia]
+print(f"\nUmbral aplicado: |Pearson| o |Spearman| >= {UMBRAL_CORRELACION:.2f}")
+print(f"Variables conservadas en la copia ({len(variables_seleccionadas)}):")
+print(variables_seleccionadas)
+
+comparacion_filtrada.plot(kind="bar", figsize=(10, 5))
 plt.title("Pearson vs Spearman")
 plt.grid()
 plt.tight_layout()

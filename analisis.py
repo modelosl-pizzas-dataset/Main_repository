@@ -17,11 +17,12 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 # =====================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-ARCHIVO_CSV = BASE_DIR / "data" / "pizza_sales.csv"
+ARCHIVO_CSV = BASE_DIR / "data" / "pizza_sales_sin_tiempo.csv"
 COLUMNA_OBJETIVO = "unit_price"
 TIPO_PROBLEMA = "regresion"  # "clasificacion" o "regresion"
 UMBRAL_NULOS = 0.5               # Filas con >50% de nulos
 UMBRAL_IMPORTANCIA = 0.001       # Importancia mínima para considerar una variable útil
+UMBRAL_CORRELACION = 0.1         # Correlaciones absolutas menores se consideran débiles
 
 # =====================================================
 # 2. CARGAR DATOS
@@ -32,14 +33,6 @@ df = pd.read_csv(ARCHIVO_CSV)
 print(f"✅ Dataset cargado: {df.shape[0]} filas, {df.shape[1]} columnas")
 print(f"\nPrimeras 5 filas:")
 print(df.head())
-
-df['n_ingredientes'] = df['pizza_ingredients'].str.split(',').apply(len)
-df['tiene_pollo'] = df['pizza_ingredients'].str.contains('chicken', case=False)
-df['tiene_carnes'] = df['pizza_ingredients'].str.contains('pepperoni|bacon|sausage|salami', case=False)
-df['tiene_vegetales'] = df['pizza_ingredients'].str.contains('pepper|onion|mushroom|spinach|tomato', case=False)
-
-df = df.drop(columns=['pizza_id', 'order_id', 'pizza_name', 'pizza_name_id', 
-                       'pizza_ingredients', 'total_price', 'order_date', 'order_time'])
 
 np.random.seed(42)
 mask = np.random.rand(len(df)) < 0.01
@@ -144,6 +137,44 @@ if COLUMNA_OBJETIVO in numericas:
     correlaciones_spearman = df[numericas].corr(method='spearman')[COLUMNA_OBJETIVO].sort_values(ascending=False)
     print(f"\n📊 Correlación de Spearman con '{COLUMNA_OBJETIVO}':")
     print(correlaciones_spearman)
+
+    comparacion_correlaciones = pd.DataFrame({
+        'Pearson': correlaciones,
+        'Spearman': correlaciones_spearman
+    })
+    comparacion_correlaciones = comparacion_correlaciones.drop(
+        index=COLUMNA_OBJETIVO
+    )
+
+    pearson_debil = comparacion_correlaciones['Pearson'].fillna(0).abs() < UMBRAL_CORRELACION
+    spearman_debil = comparacion_correlaciones['Spearman'].fillna(0).abs() < UMBRAL_CORRELACION
+    comparacion_correlaciones['Clasificacion'] = np.select(
+        [
+            pearson_debil & spearman_debil,
+            pearson_debil & ~spearman_debil,
+            ~pearson_debil & spearman_debil
+        ],
+        [
+            'Débil según ambos',
+            'Débil solo según Pearson',
+            'Débil solo según Spearman'
+        ],
+        default='Conservada según ambos'
+    )
+
+    print(
+        f"\n📊 Comparación de variables débiles "
+        f"(umbral |correlación| < {UMBRAL_CORRELACION:.2f}):"
+    )
+    print(comparacion_correlaciones['Clasificacion'].value_counts().to_string())
+    debiles = comparacion_correlaciones[
+        comparacion_correlaciones['Clasificacion'] != 'Conservada según ambos'
+    ].sort_values('Pearson', key=abs)
+    if debiles.empty:
+        print("Todas las variables superan el umbral en ambos métodos.")
+    else:
+        print("\nDetalle de variables débiles y sus correlaciones:")
+        print(debiles.to_string())
     
     plt.figure(figsize=(10, 6))
     correlaciones_spearman.drop(COLUMNA_OBJETIVO).plot(kind='barh', color='orange')
