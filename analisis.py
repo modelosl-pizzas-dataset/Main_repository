@@ -28,9 +28,23 @@ UMBRAL_IMPORTANCIA = 0.001       # Importancia mínima para considerar una varia
 # =====================================================
 
 df = pd.read_csv(ARCHIVO_CSV)
+
 print(f"✅ Dataset cargado: {df.shape[0]} filas, {df.shape[1]} columnas")
 print(f"\nPrimeras 5 filas:")
 print(df.head())
+
+df['n_ingredientes'] = df['pizza_ingredients'].str.split(',').apply(len)
+df['tiene_pollo'] = df['pizza_ingredients'].str.contains('chicken', case=False)
+df['tiene_carnes'] = df['pizza_ingredients'].str.contains('pepperoni|bacon|sausage|salami', case=False)
+df['tiene_vegetales'] = df['pizza_ingredients'].str.contains('pepper|onion|mushroom|spinach|tomato', case=False)
+
+df = df.drop(columns=['pizza_id', 'order_id', 'pizza_name', 'pizza_name_id', 
+                       'pizza_ingredients', 'total_price', 'order_date', 'order_time'])
+
+np.random.seed(42)
+mask = np.random.rand(len(df)) < 0.01
+df.loc[mask, 'n_ingredientes'] = np.nan
+print(f"\n📊 Nulos sintéticos introducidos en 'n_ingredientes': {df['n_ingredientes'].isnull().sum()} filas ({df['n_ingredientes'].isnull().mean()*100:.2f}%)")
 
 # =====================================================
 # 3. ANÁLISIS EXPLORATORIO BÁSICO
@@ -126,6 +140,18 @@ if COLUMNA_OBJETIVO in numericas:
     plt.xlabel("Correlación")
     plt.grid()
     plt.show()
+
+    correlaciones_spearman = df[numericas].corr(method='spearman')[COLUMNA_OBJETIVO].sort_values(ascending=False)
+    print(f"\n📊 Correlación de Spearman con '{COLUMNA_OBJETIVO}':")
+    print(correlaciones_spearman)
+    
+    plt.figure(figsize=(10, 6))
+    correlaciones_spearman.drop(COLUMNA_OBJETIVO).plot(kind='barh', color='orange')
+    plt.title(f"Correlación de Spearman con {COLUMNA_OBJETIVO}")
+    plt.xlabel("Correlación")
+    plt.grid()
+    plt.show()
+
 else:
     print(f"'{COLUMNA_OBJETIVO}' no es numérica. No se puede calcular correlación.")
 
@@ -241,3 +267,40 @@ print(f"  - Duplicados: {duplicados}")
 print(f"  - Con muchos nulos: {len(filas_muchos_nulos)}")
 if len(filas_muchos_nulos) > 0:
     print(f"    Índices: {filas_muchos_nulos.index.tolist()[:20]}...")
+
+    # =====================================================
+# 8. COMPARACIÓN: REGRESIÓN LINEAL vs RANDOM FOREST
+# =====================================================
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
+print("\n" + "="*60)
+print("COMPARACIÓN DE MODELOS")
+print("="*60)
+
+# --- Regresión lineal ---
+modelo_lineal = LinearRegression()
+modelo_lineal.fit(X_train, y_train)
+pred_lineal = modelo_lineal.predict(X_test)
+
+rmse_lineal = np.sqrt(mean_squared_error(y_test, pred_lineal))
+r2_lineal = r2_score(y_test, pred_lineal)
+
+# --- Random Forest (ya entrenado arriba como "modelo") ---
+pred_rf = modelo.predict(X_test)
+rmse_rf = np.sqrt(mean_squared_error(y_test, pred_rf))
+r2_rf = r2_score(y_test, pred_rf)
+
+print(f"\n📊 Regresión Lineal:")
+print(f"   RMSE: {rmse_lineal:.4f}")
+print(f"   R²:   {r2_lineal:.4f}")
+
+print(f"\n📊 Random Forest:")
+print(f"   RMSE: {rmse_rf:.4f}")
+print(f"   R²:   {r2_rf:.4f}")
+
+if r2_rf > r2_lineal:
+    print(f"\n✅ Random Forest tiene mejor desempeño (R² más alto, RMSE más bajo)")
+else:
+    print(f"\n✅ Regresión Lineal tiene mejor desempeño")
