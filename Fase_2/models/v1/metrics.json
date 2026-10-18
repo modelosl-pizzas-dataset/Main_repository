@@ -1,0 +1,22 @@
+{
+  "metrica_principal": "rmse",
+  "modelo": {
+    "algoritmo": "RandomForestRegressor",
+    "rmse": 1.1855070815621764,
+    "mae": 0.7699098511214232,
+    "r2": 0.8237848980541216
+  },
+  "modelo_base": {
+    "algoritmo": "LinearRegression",
+    "rmse": 1.1049069390358766,
+    "mae": 0.9360844075597183,
+    "r2": 0.8469313603916302
+  },
+  "referencia_media": {
+    "algoritmo": "DummyRegressor(mean)",
+    "rmse": 3.0677870859932495,
+    "mae": 2.6334654789243133,
+    "r2": -0.18000881119777778
+  },
+  "entrenamiento_rmse": 7.15500500998899e-15
+}

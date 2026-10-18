@@ -1,0 +1,21 @@
+.git
+.gitignore
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/
+.env
+kaggle.json
+*.pem
+*.log
+# Datos, modelos y resultados se montan como volúmenes; no se copian a la imagen
+data/
+models/
+outputs/
+Dockerfile
+*.md
+DOCKER_PASOS.txt

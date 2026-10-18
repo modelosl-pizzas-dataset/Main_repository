@@ -1,0 +1,26 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Cachés y temporales
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Resultados generados por predict.py
+outputs/*
+!outputs/.gitkeep
+
+# Carpetas temporales de versionado (si un entrenamiento se interrumpe)
+models/.tmp_*/
+
+# Credenciales (nunca al repositorio)
+.env
+kaggle.json
+*.pem
