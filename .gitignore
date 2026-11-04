@@ -1,0 +1,20 @@
+# Entornos virtuales y cachés
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+
+# Archivos sueltos
+tash
+.DS_Store
+
+# Generados al probar la Fase 2 (no son parte de la entrega)
+Fase_2/data/dataset_optimizado.csv
+Fase_2/data/entrada_invalida.csv
+Fase_2/models/v-docker/

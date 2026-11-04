@@ -26,7 +26,7 @@ Muestran todos los argumentos disponibles, su significado y valores por defecto.
 ```
 python prepare_data.py --raw data/pizza_sales.csv --output data/dataset_optimizado.csv
 ```
-Lee el CSV crudo y genera `data/dataset_optimizado.csv` (versión de Fase 2 de `analisis_sin_tiempo.py`): elimina identificadores, fechas, `quantity` y `total_price` (fuga de información) y deja `pizza_name` (solo como grupo de separación), `pizza_size`, `pizza_category`, `pizza_ingredients` y `unit_price`. Ya viene generado en el repositorio; solo hace falta ejecutarlo si se borra.
+Lee el CSV crudo y genera `data/dataset_optimizado.csv` (versión de Fase 2 de `analisis_sin_tiempo.py`): elimina identificadores, fechas, `quantity` y `total_price` (fuga de información) y deja `pizza_name` (solo como grupo de separación), `pizza_size`, `pizza_category`, `pizza_ingredients` y `unit_price`. No está en el repositorio: hay que ejecutarlo antes de entrenar (también antes de usar Docker, porque los datos se montan en solo lectura).
 
 | Argumento | Descripción |
 |---|---|
