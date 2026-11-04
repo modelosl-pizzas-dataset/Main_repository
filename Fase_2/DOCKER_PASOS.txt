@@ -1,0 +1,140 @@
+=====================================================================
+ DOCKER - PASOS A EJECUTAR EN VISUAL STUDIO CODE (Fase 2)
+=====================================================================
+Todos los comandos se ejecutan DESDE la carpeta Fase_2 (donde está el Dockerfile).
+Requisito: Docker Desktop abierto y en ejecución.
+
+Abrir la terminal en VS Code:  menú Terminal > Nuevo terminal  (Ctrl + ñ)
+  - En Windows el terminal por defecto es PowerShell  -> usar la sección A.
+  - Si usa Git Bash / WSL / Linux / macOS             -> usar la sección B.
+
+Entrar a la carpeta (ajuste la ruta a la de su equipo):
+    cd Fase_2
+
+---------------------------------------------------------------------
+ 0. VERIFICAR QUE DOCKER FUNCIONA
+---------------------------------------------------------------------
+    docker --version
+    docker info            (si falla: abra Docker Desktop y espere a que diga "Running")
+
+---------------------------------------------------------------------
+ 1. CONSTRUIR LA IMAGEN  (igual en PowerShell y Bash)
+---------------------------------------------------------------------
+    docker build -t modelos-fase2:1.0 .
+
+ Qué hace: instala las dependencias de requirements.txt y copia el código.
+ NO entrena nada. Debe terminar con "naming to docker.io/library/modelos-fase2:1.0".
+
+ Verificar que la imagen existe:
+    docker images modelos-fase2
+
+---------------------------------------------------------------------
+ A. POWERSHELL (Windows, terminal por defecto de VS Code)
+---------------------------------------------------------------------
+ (la continuación de línea en PowerShell es el acento grave `, no la barra \)
+
+ 2A. Crear las carpetas del anfitrión:
+    New-Item -ItemType Directory -Force models, outputs | Out-Null
+
+ 3A. ENTRENAR dentro del contenedor (versión v-docker):
+    docker run --rm `
+      -v "${PWD}/data:/app/data:ro" `
+      -v "${PWD}/models:/app/models" `
+      modelos-fase2:1.0 python train.py `
+      --data data/dataset_optimizado.csv --target unit_price `
+      --output-dir models --version v-docker --seed 42
+
+ 4A. PREDECIR dentro del contenedor:
+    docker run --rm `
+      -v "${PWD}/data:/app/data:ro" `
+      -v "${PWD}/models:/app/models:ro" `
+      -v "${PWD}/outputs:/app/outputs" `
+      modelos-fase2:1.0 python predict.py `
+      --model models/v-docker/modelo.joblib `
+      --input data/ejemplo_prediccion.csv `
+      --output outputs/predicciones_docker.csv
+
+---------------------------------------------------------------------
+ B. BASH (Git Bash, WSL, Linux, macOS)
+---------------------------------------------------------------------
+ 2B. Crear las carpetas del anfitrión:
+    mkdir -p models outputs
+
+ 3B. ENTRENAR dentro del contenedor:
+    docker run --rm \
+      -v "$PWD/data:/app/data:ro" \
+      -v "$PWD/models:/app/models" \
+      modelos-fase2:1.0 python train.py \
+      --data data/dataset_optimizado.csv --target unit_price \
+      --output-dir models --version v-docker --seed 42
+
+ 4B. PREDECIR dentro del contenedor:
+    docker run --rm \
+      -v "$PWD/data:/app/data:ro" \
+      -v "$PWD/models:/app/models:ro" \
+      -v "$PWD/outputs:/app/outputs" \
+      modelos-fase2:1.0 python predict.py \
+      --model models/v-docker/modelo.joblib \
+      --input data/ejemplo_prediccion.csv \
+      --output outputs/predicciones_docker.csv
+
+ (Git Bash en Windows: si las rutas se deforman, anteponga MSYS_NO_PATHCONV=1 al comando
+  docker run, o use la sección A en PowerShell.)
+
+---------------------------------------------------------------------
+ 5. COMPROBAR LA PERSISTENCIA (los archivos deben existir en SU equipo,
+    aunque el contenedor ya se haya eliminado con --rm)
+---------------------------------------------------------------------
+    PowerShell:   dir models\v-docker ; dir outputs
+    Bash:         ls models/v-docker outputs
+
+ Debe ver: modelo.joblib, metrics.json, metadata.json  y  outputs/predicciones_docker.csv
+
+---------------------------------------------------------------------
+ 6. PROBAR UNA ENTRADA INVÁLIDA (debe fallar con mensaje claro y código != 0)
+---------------------------------------------------------------------
+ Cree un CSV al que le falte una columna, por ejemplo data/entrada_invalida.csv con:
+    pizza_size,pizza_category
+    S,Classic
+
+ PowerShell:
+    docker run --rm `
+      -v "${PWD}/data:/app/data:ro" -v "${PWD}/models:/app/models:ro" -v "${PWD}/outputs:/app/outputs" `
+      modelos-fase2:1.0 python predict.py `
+      --model models/v-docker/modelo.joblib --input data/entrada_invalida.csv --output outputs/no_debe_existir.csv
+    echo $LASTEXITCODE          (debe mostrar 1)
+
+ Bash:
+    docker run --rm -v "$PWD/data:/app/data:ro" -v "$PWD/models:/app/models:ro" -v "$PWD/outputs:/app/outputs" \
+      modelos-fase2:1.0 python predict.py \
+      --model models/v-docker/modelo.joblib --input data/entrada_invalida.csv --output outputs/no_debe_existir.csv
+    echo $?                     (debe mostrar 1)
+
+ Mensaje esperado: "ERROR: Faltan columnas requeridas: ['pizza_ingredients']..." y NO debe
+ crearse outputs/no_debe_existir.csv. Borre luego data/entrada_invalida.csv.
+
+---------------------------------------------------------------------
+ 7. EXTRAS ÚTILES
+---------------------------------------------------------------------
+ Ayuda de los scripts dentro del contenedor:
+    docker run --rm modelos-fase2:1.0 python train.py --help
+    docker run --rm modelos-fase2:1.0 python predict.py --help
+
+ Ejecutar las pruebas dentro del contenedor (opcional):
+    docker run --rm modelos-fase2:1.0 python -m pytest
+
+ Guardar el hash del commit en los metadatos (en Docker no existe .git):
+    PowerShell:  $c = git rev-parse HEAD   y añadir al train:  --git-commit $c
+    Bash:        añadir al train:  --git-commit $(git rev-parse HEAD)
+
+---------------------------------------------------------------------
+ PROBLEMAS FRECUENTES
+---------------------------------------------------------------------
+ * "error during connect / pipe docker_engine": Docker Desktop no está abierto.
+ * "Version 'v-docker' ya existe": el identificador no se sobrescribe; use otro
+   (--version v-docker2) o borre la carpeta models/v-docker.
+ * "No se encontró el archivo de datos": falta montar data/ o la ruta es incorrecta
+   (dentro del contenedor las rutas son relativas a /app).
+ * Si no usa Docker Desktop con WSL2 y el montaje de carpetas falla, active en Docker Desktop
+   Settings > Resources > File sharing la unidad donde está el proyecto.
+ * Sin acceso a internet durante "docker build": pip necesita descargar los paquetes.

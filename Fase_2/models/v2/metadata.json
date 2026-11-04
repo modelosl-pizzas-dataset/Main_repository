@@ -1,0 +1,48 @@
+{
+  "version": "v2",
+  "created_at": "2026-10-18T18:13:47+00:00",
+  "problem_type": "regresion",
+  "target": "unit_price",
+  "algorithm": "RandomForestRegressor (sklearn Pipeline)",
+  "input_features": {
+    "pizza_size": "texto",
+    "pizza_category": "texto",
+    "pizza_ingredients": "texto"
+  },
+  "nullable_features": [
+    "pizza_size",
+    "pizza_category",
+    "pizza_ingredients"
+  ],
+  "n_features_after_preprocessing": 61,
+  "model_params": {
+    "n_estimators": 300,
+    "max_depth": 12,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "seed": 42,
+  "data": {
+    "source": "Pizza Sales (data/pizza_sales.csv, dataset de Fase 1)",
+    "file": "data/dataset_optimizado.csv",
+    "sha256": "40ee32808f7c0d4d8f9d524da73be26cbf1c8fb1c819d567ab834e1ed294b3aa",
+    "n_observations": 48620
+  },
+  "split": {
+    "strategy": "GroupShuffleSplit por 'pizza_name'",
+    "group_column": "pizza_name",
+    "test_size": 0.2,
+    "n_train": 38276,
+    "n_test": 10344,
+    "n_groups_train": 25,
+    "n_groups_test": 7
+  },
+  "metric": "RMSE (principal), MAE, R2",
+  "python_version": "3.12.3",
+  "library_versions": {
+    "scikit-learn": "1.8.0",
+    "numpy": "2.4.4"
+  },
+  "requirements_file": "requirements.txt",
+  "git_commit": "no-disponible"
+}
