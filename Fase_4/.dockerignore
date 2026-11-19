@@ -1,0 +1,22 @@
+.git
+.gitignore
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/
+.env
+*.pem
+*.log
+# Datos, modelos y registros se montan como volúmenes; no se copian a la imagen
+data/
+models/
+outputs/
+logs/
+docs/
+Dockerfile
+*.md
+DOCKER_PASOS.txt
