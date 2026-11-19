@@ -1,0 +1,79 @@
+=====================================================================
+ DOCKER - API (FASE 3): PASOS EN VISUAL STUDIO CODE
+=====================================================================
+Ejecutar DESDE la carpeta Fase_3 (donde está el Dockerfile). Docker Desktop debe estar abierto.
+PowerShell (Windows): sección A.   Bash / Git Bash / WSL / Linux / macOS: sección B.
+
+---------------------------------------------------------------------
+ 1. CONSTRUIR LA IMAGEN (igual en ambos)
+---------------------------------------------------------------------
+    docker build -t modelos-fase3:1.0 .
+
+---------------------------------------------------------------------
+ A. POWERSHELL
+---------------------------------------------------------------------
+ 2A. Iniciar la API (deja la terminal ocupada; deténgala con Ctrl+C):
+    docker run --rm -p 8000:8000 `
+      -v "${PWD}/data:/app/data:ro" `
+      -v "${PWD}/models:/app/models" `
+      modelos-fase3:1.0
+
+ Con otra versión del modelo (por ejemplo v2):
+    docker run --rm -p 8000:8000 -e MODEL_VERSION=v2 `
+      -v "${PWD}/data:/app/data:ro" `
+      -v "${PWD}/models:/app/models" `
+      modelos-fase3:1.0
+
+ 3A. En OTRA terminal de VS Code (Terminal > Nueva terminal), desde Fase_3:
+    Invoke-RestMethod http://localhost:8000/health
+    py client.py
+    py client.py --incluir-invalida
+    py client.py --train
+    Invoke-RestMethod http://localhost:8000/models
+    dir models        (debe aparecer una carpeta nueva v3 con modelo.joblib, metrics.json, metadata.json)
+
+ 4A. Pruebas dentro del contenedor (opcional):
+    docker run --rm modelos-fase3:1.0 python -m pytest
+
+---------------------------------------------------------------------
+ B. BASH
+---------------------------------------------------------------------
+ 2B. Iniciar la API:
+    docker run --rm -p 8000:8000 \
+      -v "$PWD/data:/app/data:ro" \
+      -v "$PWD/models:/app/models" \
+      modelos-fase3:1.0
+
+ Con otra versión:  añadir  -e MODEL_VERSION=v2  antes del nombre de la imagen.
+
+ 3B. En otra terminal:
+    curl http://localhost:8000/health
+    python client.py
+    python client.py --incluir-invalida
+    python client.py --train
+    curl http://localhost:8000/models
+    ls models
+
+ 4B. Pruebas dentro del contenedor (opcional):
+    docker run --rm modelos-fase3:1.0 python -m pytest
+
+---------------------------------------------------------------------
+ QUÉ DEBE VERSE
+---------------------------------------------------------------------
+ * /health -> {"status":"ok", ... "modelo_activo":"v1","modelo_disponible":true}
+ * client.py -> cada predicción con {"prediccion": ..., "version": "v1"}
+ * La solicitud inválida -> HTTP 422 con "Falta el campo obligatorio 'pizza_ingredients'."
+ * --train -> HTTP 201 con "version": "v3"; la carpeta models/v3 queda EN SU EQUIPO
+   aunque el contenedor se elimine (montaje -v models).
+ * /predict sigue usando v1 hasta que reinicie el contenedor con -e MODEL_VERSION=v3.
+
+---------------------------------------------------------------------
+ PROBLEMAS FRECUENTES
+---------------------------------------------------------------------
+ * "port is already allocated": el puerto 8000 está ocupado. Use -p 8001:8000 y envíe a
+   http://localhost:8001 (client.py --url http://localhost:8001).
+ * "error during connect / pipe docker_engine": Docker Desktop no está abierto.
+ * /health muestra "modelo_disponible": false -> no se montó models/ o MODEL_VERSION no existe:
+   revise el montaje -v y GET /models.
+ * /train responde 500 "No se encontró el archivo de datos": falta montar data/ con dataset_optimizado.csv.
+ * Git Bash en Windows: si las rutas se deforman anteponga MSYS_NO_PATHCONV=1 a docker run.

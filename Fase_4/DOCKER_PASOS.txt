@@ -1,0 +1,78 @@
+=====================================================================
+ DOCKER - API CON MONITOREO (FASE 4): PASOS EN VISUAL STUDIO CODE
+=====================================================================
+Ejecutar DESDE la carpeta Fase_4. Docker Desktop debe estar abierto.
+PowerShell (Windows): sección A.   Bash / Git Bash / WSL / Linux / macOS: sección B.
+
+ Montajes usados:
+   data/    -> /app/data    (solo lectura; la usa /train)
+   models/  -> /app/models  (versiones del modelo; persisten en su equipo)
+   logs/    -> /app/logs    (registro de solicitudes predict_log.csv; persiste en su equipo)
+ Puerto: 8000.   Versión activa por defecto: v2 (cámbiela con -e MODEL_VERSION=v1).
+
+---------------------------------------------------------------------
+ 1. CONSTRUIR LA IMAGEN (igual en ambos)
+---------------------------------------------------------------------
+    docker build -t modelos-fase4:1.0 .
+
+---------------------------------------------------------------------
+ A. POWERSHELL
+---------------------------------------------------------------------
+ 2A. Crear la carpeta del registro (si no existe) y, para un ensayo limpio, borrar el registro anterior:
+    New-Item -ItemType Directory -Force logs | Out-Null
+    Remove-Item logs\predict_log.csv -ErrorAction SilentlyContinue
+
+ 3A. COMANDO DE INICIO (API con registro habilitado y versión v2). Deja la terminal ocupada; Ctrl+C la detiene:
+    docker run --rm -p 8000:8000 `
+      -v "${PWD}/data:/app/data:ro" `
+      -v "${PWD}/models:/app/models" `
+      -v "${PWD}/logs:/app/logs" `
+      modelos-fase4:1.0
+
+ Para iniciar con la versión anterior (v1):  añadir  -e MODEL_VERSION=v1  antes de modelos-fase4:1.0
+
+ 4A. En OTRA terminal de VS Code, desde Fase_4: dos solicitudes válidas y una con un campo ausente.
+    py client.py --filas 2 --incluir-invalida
+
+ 5A. Ejecutar el script de monitoreo sobre el registro (en su equipo, no en el contenedor):
+    py monitor.py --log logs/predict_log.csv
+    type logs\predict_log.csv          (compare con las filas: debe haber 3 y un 422)
+
+    (Opcional) con Docker:
+    docker run --rm -v "${PWD}/logs:/app/logs:ro" modelos-fase4:1.0 python monitor.py
+
+---------------------------------------------------------------------
+ B. BASH
+---------------------------------------------------------------------
+ 2B. mkdir -p logs && rm -f logs/predict_log.csv
+
+ 3B. COMANDO DE INICIO:
+    docker run --rm -p 8000:8000 \
+      -v "$PWD/data:/app/data:ro" \
+      -v "$PWD/models:/app/models" \
+      -v "$PWD/logs:/app/logs" \
+      modelos-fase4:1.0
+
+ 4B. En otra terminal:   python client.py --filas 2 --incluir-invalida
+ 5B. python monitor.py --log logs/predict_log.csv ; cat logs/predict_log.csv
+
+---------------------------------------------------------------------
+ RESULTADO ESPERADO
+---------------------------------------------------------------------
+    Total de solicitudes: 3
+    Solicitudes fallidas (HTTP 4xx/5xx): 1
+    Porcentaje de solicitudes fallidas: 33,3 %
+
+ * logs/predict_log.csv existe EN SU EQUIPO aunque el contenedor se elimine, y conserva el historial
+   si vuelve a iniciar la API (las nuevas solicitudes se agregan al final).
+ * Para volver a la versión anterior: detener el contenedor y reiniciar con  -e MODEL_VERSION=v1 .
+ * Pruebas dentro del contenedor (opcional):  docker run --rm modelos-fase4:1.0 python -m pytest
+
+---------------------------------------------------------------------
+ PROBLEMAS FRECUENTES
+---------------------------------------------------------------------
+ * "port is already allocated": use -p 8001:8000 y  python client.py --url http://localhost:8001 .
+ * monitor.py dice "No existe el registro": aún no se ha enviado ninguna solicitud o no se montó logs/.
+ * "error during connect / pipe docker_engine": Docker Desktop no está abierto.
+ * /health con "modelo_disponible": false: revise el montaje de models/ y MODEL_VERSION (GET /models).
+ * Las horas del registro en Docker están en UTC.

@@ -1,0 +1,8 @@
+pizza_size,pizza_category,pizza_ingredients
+S,Classic,"Sliced Ham, Pineapple, Mozzarella Cheese"
+M,Classic,"Pepperoni, Mushrooms, Red Onions, Red Peppers, Bacon"
+L,Veggie,"Mushrooms, Tomatoes, Red Peppers, Green Peppers, Red Onions, Zucchini, Spinach, Garlic"
+XL,Supreme,"Capocollo, Tomatoes, Goat Cheese, Artichokes, Peperoncini verdi, Garlic"
+M,Chicken,"Chicken, Artichoke, Spinach, Garlic, Jalapeno Peppers, Fontina Cheese, Gouda Cheese"
+L,Classic,
+,Veggie,"Mushrooms, Tomatoes, Garlic"
